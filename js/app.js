@@ -58,8 +58,8 @@
   }
 
   function initActiveNavigation() {
-    const links = Array.from(document.querySelectorAll(".nav-link[href^='#']"));
-    const sections = links.map((link) => document.querySelector(link.getAttribute("href"))).filter(Boolean);
+    const links = Array.from(document.querySelectorAll(".nav-link[href^='/#']"));
+    const sections = links.map((link) => document.querySelector(link.hash)).filter(Boolean);
     if (!links.length || !sections.length || !("IntersectionObserver" in window)) return;
 
     const observer = new IntersectionObserver((entries) => {
@@ -69,7 +69,7 @@
       if (!visible) return;
 
       links.forEach((link) => {
-        const active = link.getAttribute("href") === `#${visible.target.id}`;
+        const active = link.hash === `#${visible.target.id}`;
         link.classList.toggle("is-active", active);
         if (active) link.setAttribute("aria-current", "location");
         else link.removeAttribute("aria-current");

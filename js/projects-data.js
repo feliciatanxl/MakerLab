@@ -60,7 +60,7 @@
       featuredDescription: "Sensors and Arduino firmware feed serial JSON to a Raspberry Pi workflow, which can request spoken confirmation and pass structured incident data to the broader EchoSync application ecosystem.",
       filters: ["Arduino", "Raspberry Pi", "IoT"],
       tags: ["Sensors", "Python", "Serial JSON", "Application ecosystem"],
-      detailUrl: "projects/echosync.html",
+      detailUrl: "/projects/echosync",
       repositoryUrl: echoSyncRepositoryUrl,
       portfolioUrl: echoSyncPortfolioUrl,
       sourceUrl: `${repositoryUrl}/tree/main/EchoSync`,
