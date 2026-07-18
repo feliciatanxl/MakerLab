@@ -119,11 +119,11 @@
         <p class="featured-lead">${project.description}</p>
         <p>${project.featuredDescription}</p>
         <div class="tag-list" aria-label="${project.name} technologies">${tags}</div>
-        <div class="project-actions">
-          <a class="button button-primary" href="${project.detailUrl}">View Project Details <span aria-hidden="true">→</span></a>
-          <div class="project-secondary-links">
-            <a class="text-link external-project-link" href="${project.repositoryUrl}" target="_blank" rel="noopener noreferrer">Full repository <span aria-hidden="true">↗</span></a>
-            <a class="text-link external-project-link portfolio-project-link" href="${project.portfolioUrl}" target="_blank" rel="noopener noreferrer">Portfolio Case Study <span aria-hidden="true">↗</span></a>
+        <div class="featured-project-actions">
+          <a class="button button-primary featured-project-primary-action" href="${project.detailUrl}">View Project Details <span aria-hidden="true">→</span></a>
+          <div class="featured-project-secondary-actions">
+            <a class="text-link external-project-link" href="${project.repositoryUrl}" target="_blank" rel="noopener noreferrer">Full Repository <span aria-hidden="true">↗</span></a>
+            <a class="text-link external-project-link" href="${project.portfolioUrl}" target="_blank" rel="noopener noreferrer">Portfolio Case Study <span aria-hidden="true">↗</span></a>
           </div>
         </div>
       </div>`;
@@ -372,6 +372,9 @@
     setText("[data-recognition]", detail.recognition);
     document.querySelectorAll("[data-portfolio-link]").forEach((link) => {
       link.href = project.portfolioUrl;
+    });
+    document.querySelectorAll("[data-repository-link]").forEach((link) => {
+      link.href = project.repositoryUrl;
     });
 
     renderHardware(detail.hardware);
