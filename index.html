@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Maker-Lab documents hands-on Arduino, ESP32, Raspberry Pi, embedded systems, IoT, and web experiments.">
+  <meta name="theme-color" content="#081113">
+  <title>Maker-Lab | Hardware, software &amp; experiments</title>
+  <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+
+  <header class="site-header" data-site-header>
+    <nav class="nav-shell container" aria-label="Primary navigation">
+      <a class="brand" href="#home" aria-label="Maker-Lab home">
+        <span class="brand-mark" aria-hidden="true"><span>ML</span></span>
+        <span class="brand-name">Maker-Lab</span>
+      </a>
+
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-menu" aria-label="Open navigation menu">
+        <span></span><span></span><span></span>
+      </button>
+
+      <div class="nav-menu" id="primary-menu">
+        <a class="nav-link is-active" href="#home">Home</a>
+        <a class="nav-link" href="#projects">Projects</a>
+        <a class="nav-link" href="#technologies">Technologies</a>
+        <a class="nav-link" href="#build-log">Build Log</a>
+        <a class="nav-link" href="#about">About</a>
+        <a class="button button-small button-ghost github-link" href="https://github.com/feliciatanxl/MakerLab" target="_blank" rel="noreferrer">
+          <span class="terminal-icon" aria-hidden="true">&gt;_</span> GitHub
+        </a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main-content">
+    <section class="hero section-grid" id="home" aria-labelledby="hero-title">
+      <div class="container hero-layout">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="status-dot"></span> Personal maker repository</p>
+          <h1 id="hero-title">Ideas become<br><span class="accent-text">working systems.</span></h1>
+          <p class="hero-tagline">Building ideas through hardware, software, and experimentation.</p>
+          <p class="hero-intro">Maker-Lab documents hands-on work with Arduino, ESP32, Raspberry Pi, embedded systems, sensors, IoT, and the web—one tested prototype at a time.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#projects">Explore Projects <span aria-hidden="true">↓</span></a>
+            <a class="button button-secondary" href="https://github.com/feliciatanxl/MakerLab" target="_blank" rel="noreferrer">View on GitHub <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="hero-meta" aria-label="Repository highlights">
+            <span><b>01</b> documented build</span>
+            <span><b>03</b> core platforms</span>
+            <span><b>LOG</b> documentation active</span>
+          </div>
+        </div>
+
+        <div class="workbench" aria-label="Decorative simulated electronics workbench display">
+          <div class="workbench-topbar">
+            <span class="window-controls" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span>maker-lab / bench-monitor</span>
+            <span class="bench-live"><i></i> SIMULATION</span>
+          </div>
+          <div class="workbench-body">
+            <div class="board-map" aria-hidden="true">
+              <span class="trace trace-a"></span>
+              <span class="trace trace-b"></span>
+              <span class="trace trace-c"></span>
+              <span class="trace trace-d"></span>
+              <span class="trace-node node-a"></span>
+              <span class="trace-node node-b"></span>
+              <span class="trace-node node-c"></span>
+              <div class="chip">
+                <span>ML-01</span>
+                <small>WORKBENCH</small>
+              </div>
+            </div>
+            <div class="readout-grid">
+              <div class="readout"><span>BOARD</span><strong>ARDUINO</strong><i class="led led-green"></i></div>
+              <div class="readout"><span>NODE</span><strong>RASPBERRY PI</strong><i class="led led-cyan"></i></div>
+              <div class="readout"><span>NEXT</span><strong>ESP32</strong><i class="led led-amber"></i></div>
+            </div>
+            <div class="terminal" aria-hidden="true">
+              <p><span class="prompt">maker@lab:~$</span> monitor --ports</p>
+              <p><span class="term-time">[00:01]</span> serial link <b>ready</b></p>
+              <p><span class="term-time">[00:02]</span> sensor bus <b>online</b></p>
+              <p><span class="term-time">[00:03]</span> documenting build<span class="cursor">_</span></p>
+            </div>
+          </div>
+          <span class="corner-label corner-label-top">J1</span>
+          <span class="corner-label corner-label-bottom">REV.01</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="lab-overview" aria-labelledby="overview-title">
+      <div class="container">
+        <div class="section-heading compact-heading">
+          <div>
+            <p class="section-kicker">/ LAB STATUS</p>
+            <h2 id="overview-title">Workbench overview</h2>
+          </div>
+          <p>What is on the bench right now.</p>
+        </div>
+        <div class="overview-grid">
+          <article class="overview-card"><span class="card-index">01</span><p>Platforms</p><h3>Arduino · ESP32 · Raspberry Pi</h3></article>
+          <article class="overview-card"><span class="card-index">02</span><p>Featured project</p><h3>EchoSync</h3></article>
+          <article class="overview-card"><span class="card-index">03</span><p>Current build</p><h3>Maker-Lab website</h3></article>
+          <article class="overview-card"><span class="card-index">04</span><p>Repository</p><h3>Growing collection</h3></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-grid" id="projects" aria-labelledby="projects-title">
+      <div class="container">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">/ PROJECT INDEX</p>
+            <h2 id="projects-title">Built, tested, documented.</h2>
+          </div>
+          <p>Real work first. Planned experiments are clearly marked and will earn their place as they move from idea to prototype.</p>
+        </div>
+
+        <article class="featured-project" aria-labelledby="featured-project-title" data-featured-project="echosync"></article>
+
+        <div class="project-browser">
+          <div class="filter-row" role="group" aria-label="Filter projects by platform or status">
+            <span class="filter-label">FILTER:</span>
+            <div class="filter-controls" data-project-filters></div>
+          </div>
+          <p class="results-status" data-filter-status aria-live="polite"></p>
+          <div class="projects-grid" data-project-grid></div>
+          <noscript><p class="notice">Enable JavaScript to view and filter the project index. EchoSync remains available above.</p></noscript>
+        </div>
+      </div>
+    </section>
+
+    <section class="section technologies-section" id="technologies" aria-labelledby="technologies-title">
+      <div class="container technologies-layout">
+        <div class="section-heading vertical-heading">
+          <div>
+            <p class="section-kicker">/ TOOLKIT</p>
+            <h2 id="technologies-title">Technologies under exploration.</h2>
+          </div>
+          <p>No progress bars or arbitrary ratings—just the tools and areas being learned through actual builds.</p>
+        </div>
+        <div class="technology-grid">
+          <article class="technology-card"><span class="tech-code">HW</span><h3>Platforms</h3><p>Arduino · ESP32 · Raspberry Pi</p></article>
+          <article class="technology-card"><span class="tech-code">SW</span><h3>Languages</h3><p>C/C++ · Python · JavaScript</p></article>
+          <article class="technology-card"><span class="tech-code">WEB</span><h3>Web</h3><p>HTML · CSS · APIs</p></article>
+          <article class="technology-card"><span class="tech-code">IO</span><h3>Systems</h3><p>Sensors · IoT · Embedded systems · Serial communication</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-grid" id="build-log" aria-labelledby="build-log-title">
+      <div class="container build-log-layout">
+        <div class="section-heading vertical-heading sticky-heading">
+          <div>
+            <p class="section-kicker">/ BUILD LOG</p>
+            <h2 id="build-log-title">Progress, one revision at a time.</h2>
+          </div>
+          <p>A concise history of what has reached the repository and what is queued for a future bench session.</p>
+        </div>
+        <ol class="timeline" data-build-log></ol>
+      </div>
+    </section>
+
+    <section class="section about-section" id="about" aria-labelledby="about-title">
+      <div class="container about-layout">
+        <div>
+          <p class="section-kicker">/ ABOUT THE LAB</p>
+          <h2 id="about-title">Learning by building—and recording the whole process.</h2>
+        </div>
+        <div class="about-copy">
+          <p>Maker-Lab is a personal workspace for experimenting with hardware and software, learning embedded systems, and turning rough prototypes into presentable projects.</p>
+          <p>Each build is a chance to record the wiring, code, problems, and solutions that make the next experiment better. The repository will grow over time alongside the skills behind it.</p>
+          <div class="about-values" aria-label="Maker-Lab principles">
+            <span>01 / EXPERIMENT</span><span>02 / DOCUMENT</span><span>03 / ITERATE</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <a class="brand footer-brand" href="#home" aria-label="Back to Maker-Lab home">
+          <span class="brand-mark" aria-hidden="true"><span>ML</span></span><span class="brand-name">Maker-Lab</span>
+        </a>
+        <p>Building ideas through hardware, software, and experimentation.</p>
+      </div>
+      <div class="footer-meta">
+        <a href="https://github.com/feliciatanxl/MakerLab" target="_blank" rel="noreferrer">GitHub repository <span aria-hidden="true">↗</span></a>
+        <p>Built with HTML, CSS and JavaScript</p>
+        <p>© <span data-current-year></span> Maker-Lab</p>
+      </div>
+      <a class="back-to-top" href="#home" aria-label="Back to top">↑<span>TOP</span></a>
+    </div>
+  </footer>
+
+  <script src="js/projects-data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

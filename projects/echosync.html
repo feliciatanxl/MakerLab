@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Technical overview of EchoSync, Maker-Lab's Arduino and Raspberry Pi sensor project.">
+  <meta name="theme-color" content="#081113">
+  <title>EchoSync | Maker-Lab</title>
+  <link rel="icon" href="../assets/icons/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="../css/project.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+
+  <header class="site-header" data-site-header>
+    <nav class="nav-shell container" aria-label="Primary navigation">
+      <a class="brand" href="../index.html#home" aria-label="Maker-Lab home">
+        <span class="brand-mark" aria-hidden="true"><span>ML</span></span>
+        <span class="brand-name">Maker-Lab</span>
+      </a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-menu" aria-label="Open navigation menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-menu" id="primary-menu">
+        <a class="nav-link" href="../index.html#home">Home</a>
+        <a class="nav-link is-active" href="../index.html#projects" aria-current="page">Projects</a>
+        <a class="nav-link" href="../index.html#technologies">Technologies</a>
+        <a class="nav-link" href="../index.html#build-log">Build Log</a>
+        <a class="nav-link" href="../index.html#about">About</a>
+        <a class="button button-small button-ghost github-link" href="https://github.com/feliciatanxl/MakerLab" target="_blank" rel="noreferrer">
+          <span class="terminal-icon" aria-hidden="true">&gt;_</span> GitHub
+        </a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main-content" data-project-detail="echosync">
+    <section class="project-hero section-grid" aria-labelledby="project-title">
+      <div class="container">
+        <nav class="breadcrumbs" aria-label="Breadcrumb">
+          <a href="../index.html">Maker-Lab</a><span aria-hidden="true">/</span><a href="../index.html#projects">Projects</a><span aria-hidden="true">/</span><span aria-current="page" data-project-name>EchoSync</span>
+        </nav>
+        <div class="project-hero-grid">
+          <div>
+            <div class="project-topline detail-topline">
+              <span class="status-badge status-built">Built</span>
+              <span class="project-code">PROJECT / 001</span>
+            </div>
+            <p class="section-kicker">ARDUINO + RASPBERRY PI</p>
+            <h1 id="project-title" data-project-name>EchoSync</h1>
+            <p class="project-summary" data-project-summary></p>
+            <div class="project-hero-actions">
+              <a class="button button-primary" href="https://github.com/feliciatanxl/MakerLab/tree/main/EchoSync" target="_blank" rel="noreferrer">Browse source <span aria-hidden="true">↗</span></a>
+              <a class="button button-secondary" href="#system-flow">See system flow <span aria-hidden="true">↓</span></a>
+            </div>
+          </div>
+          <div class="project-schematic" aria-hidden="true">
+            <span class="schematic-line line-1"></span><span class="schematic-line line-2"></span><span class="schematic-line line-3"></span>
+            <div class="schematic-board"><span>ES</span><small>NODE / 01</small></div>
+            <span class="schematic-label sl-1">SENSOR BUS</span><span class="schematic-label sl-2">SERIAL</span><span class="schematic-label sl-3">PI HOST</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="project-nav-bar" aria-label="Project page sections">
+      <div class="container">
+        <a href="#components">Components</a><a href="#system-flow">System flow</a><a href="#capabilities">Capabilities</a><a href="#source-files">Source files</a><a href="#future-media">Future media</a>
+      </div>
+    </section>
+
+    <section class="section" id="components" aria-labelledby="components-title">
+      <div class="container">
+        <div class="section-heading">
+          <div><p class="section-kicker">/ COMPONENT MAP</p><h2 id="components-title">Hardware meets software.</h2></div>
+          <p>The project is split into a physical sensing layer and a Raspberry Pi software layer.</p>
+        </div>
+        <div class="component-grid">
+          <article class="component-panel">
+            <div class="component-heading"><span>01</span><div><p>Physical layer</p><h3>Hardware used</h3></div></div>
+            <ul class="technical-list" data-hardware-list></ul>
+          </article>
+          <article class="component-panel">
+            <div class="component-heading"><span>02</span><div><p>Logic layer</p><h3>Software used</h3></div></div>
+            <ul class="technical-list" data-software-list></ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section flow-section section-grid" id="system-flow" aria-labelledby="flow-title">
+      <div class="container">
+        <div class="section-heading">
+          <div><p class="section-kicker">/ SIGNAL PATH</p><h2 id="flow-title">How the parts communicate.</h2></div>
+          <p data-communication></p>
+        </div>
+        <div class="system-flow" data-system-flow aria-label="EchoSync communication flow"></div>
+        <p class="diagram-note"><span aria-hidden="true">i</span> The diagram describes the communication visible in the repository source; it does not represent a live connection.</p>
+      </div>
+    </section>
+
+    <section class="section" id="capabilities" aria-labelledby="capabilities-title">
+      <div class="container split-section">
+        <div>
+          <p class="section-kicker">/ CAPABILITIES</p>
+          <h2 id="capabilities-title">What the source currently supports.</h2>
+          <p class="section-intro">This list stays close to the checked-in code. Future ideas belong in the roadmap, not in the built feature list.</p>
+        </div>
+        <ul class="capability-list" data-capabilities-list></ul>
+      </div>
+    </section>
+
+    <section class="section source-section" id="source-files" aria-labelledby="source-title">
+      <div class="container split-section">
+        <div>
+          <p class="section-kicker">/ REPOSITORY FILES</p>
+          <h2 id="source-title">Start with the source.</h2>
+          <p class="section-intro">The original EchoSync files remain in their existing folder and are linked here for review.</p>
+        </div>
+        <ul class="source-list" data-source-files></ul>
+      </div>
+    </section>
+
+    <section class="section" id="future-media" aria-labelledby="future-title">
+      <div class="container">
+        <div class="future-header">
+          <div><p class="section-kicker">/ DOCUMENTATION BAY</p><h2 id="future-title">Reserved for the next revision.</h2></div>
+          <span class="status-badge status-planned">To be added</span>
+        </div>
+        <div class="future-grid">
+          <article><span aria-hidden="true">▧</span><h3>Build photos</h3><p>Board, wiring, enclosure, and installation images.</p></article>
+          <article><span aria-hidden="true">▶</span><h3>Demo video</h3><p>A walkthrough of the working hardware and software flow.</p></article>
+          <article><span aria-hidden="true">◇</span><h3>Awards &amp; recognition</h3><p>Competition or showcase results, if applicable later.</p></article>
+          <article><span aria-hidden="true">≡</span><h3>Full documentation</h3><p>Wiring diagrams, setup notes, testing, and lessons learned.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="next-project">
+      <div class="container">
+        <p>Return to the full project index</p>
+        <a href="../index.html#projects">Explore Maker-Lab projects <span aria-hidden="true">→</span></a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <a class="brand footer-brand" href="../index.html#home" aria-label="Maker-Lab home"><span class="brand-mark" aria-hidden="true"><span>ML</span></span><span class="brand-name">Maker-Lab</span></a>
+        <p>Building ideas through hardware, software, and experimentation.</p>
+      </div>
+      <div class="footer-meta">
+        <a href="https://github.com/feliciatanxl/MakerLab" target="_blank" rel="noreferrer">GitHub repository <span aria-hidden="true">↗</span></a>
+        <p>Built with HTML, CSS and JavaScript</p><p>© <span data-current-year></span> Maker-Lab</p>
+      </div>
+      <a class="back-to-top" href="#main-content" aria-label="Back to top">↑<span>TOP</span></a>
+    </div>
+  </footer>
+
+  <script src="../js/projects-data.js"></script>
+  <script src="../js/app.js"></script>
+</body>
+</html>

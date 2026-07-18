@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Maker-Lab</title>
+  <rect width="64" height="64" rx="10" fill="#071012"/>
+  <path d="M15 7v8M25 7v8M39 7v8M49 7v8M15 49v8M25 49v8M39 49v8M49 49v8M7 15h8M7 25h8M7 39h8M7 49h8M49 15h8M49 25h8M49 39h8M49 49h8" stroke="#1598ab" stroke-width="3"/>
+  <rect x="14" y="14" width="36" height="36" rx="5" fill="#0d2024" stroke="#42d9ed" stroke-width="2"/>
+  <path d="M22 40V24l10 10 10-10v16" fill="none" stroke="#a5e85b" stroke-width="4" stroke-linecap="square" stroke-linejoin="bevel"/>
+</svg>
