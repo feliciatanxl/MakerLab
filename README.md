@@ -23,7 +23,7 @@ The website includes:
 
 | Project | Platform | Status |
 | --- | --- | --- |
-| EchoSync | Arduino + Raspberry Pi | Built |
+| EchoSync | Arduino + Raspberry Pi | Built Prototype |
 | ESP32 Hologram Cube | ESP32 | Planned |
 | LED Matrix Tetris | Arduino | Planned |
 | RFID Access System | ESP32 | Planned |
@@ -33,14 +33,27 @@ Planned projects are roadmap entries, not completed builds.
 
 ## EchoSync
 
-EchoSync is the first genuine project in Maker-Lab. The checked-in Arduino sketch reads a microphone/sound sensor, PIR motion sensor, ultrasonic sensor, and HX711-connected load cell, displays local status on an I²C LCD, and sends JSON data over serial. The Raspberry Pi Python program reads and enriches that serial data and includes audio and HTTP communication workflows.
+EchoSync is the first genuine project in Maker-Lab. It is a privacy-conscious wellbeing and emergency-detection prototype that connects ambient sensors, Arduino firmware, Raspberry Pi decision and voice logic, and a broader digital response application.
+
+The checked-in Arduino sketch reads a microphone/sound sensor, PIR motion sensor, ultrasonic sensor, and HX711-connected load cell, displays local status on an I²C LCD, and sends JSON data over serial. The Raspberry Pi Python program reads and enriches that serial data and includes audio and HTTP communication workflows.
+
+The complete EchoSync application ecosystem—including the operator-style dashboard, caregiver and responder views, public website, and API routes—is maintained separately:
+
+- **Full application repository:** [github.com/feliciatanxl/EchoSync](https://github.com/feliciatanxl/EchoSync)
+- **Maker-Lab case study:** [`projects/echosync.html`](projects/echosync.html)
+
+The case study includes English and Chinese demonstration videos, a hardware gallery, an accessible image lightbox, the Arduino-to-Raspberry Pi serial flow, and a clear distinction between the built prototype and future improvements. EchoSync is an innovation prototype, not a certified medical device or deployed emergency system.
+
+### EchoSync documentation roles
+
+Maker-Lab contains the technical EchoSync build documentation: the hardware prototype, sensor roles, Arduino-to-Raspberry Pi workflow, serial JSON, architecture, short hardware demonstrations, source code, and engineering lessons.
+
+The [EchoSync portfolio case study](https://feliciatanxl.github.io/Portfolio/echosync.html) contains the wider project story, problem and impact, personal contribution summary, competition journey, and application walkthrough. The two pages are intentionally cross-linked so each can stay focused on its own role. A future full application walkthrough should live on the portfolio page, while shorter hardware demonstrations remain in Maker-Lab.
 
 Source files:
 
 - [`EchoSync/EchoSync.ino`](EchoSync/EchoSync.ino) — Arduino sensor-node firmware
 - [`EchoSync/EchoTest_Pi.py`](EchoSync/EchoTest_Pi.py) — Raspberry Pi Python workflow
-
-The public project overview is at [`projects/echosync.html`](projects/echosync.html).
 
 ## Repository structure
 
@@ -57,7 +70,10 @@ MakerLab/
 │   └── projects-data.js
 ├── assets/
 │   ├── icons/
-│   └── images/
+│   ├── images/
+│   │   └── echosync/
+│   └── videos/
+│       └── echosync/
 ├── EchoSync/
 │   ├── EchoSync.ino
 │   └── EchoTest_Pi.py
@@ -66,7 +82,49 @@ MakerLab/
 └── .gitignore
 ```
 
-The `assets` folders are reserved for future project photography, diagrams, and original icons. The current site uses CSS-based graphics and does not require external images.
+The `assets` folders contain original project photography, demonstration media, and Maker-Lab icons. The site does not depend on external stock imagery.
+
+## EchoSync media
+
+```text
+assets/
+├── images/
+│   └── echosync/
+│       ├── full_closeup_view.jpg
+│       ├── analog-sound-sensor.jpg
+│       ├── esp32-cam.jpg
+│       ├── infrared-sensor-module.jpg
+│       ├── inmp441-microphone.jpg
+│       ├── load-cell-hx711.jpg
+│       ├── pir-motion-sensor.jpg
+│       ├── speaker-pair.jpg
+│       ├── ultrasonic-sensor.jpg
+│       └── usb-audio-adapter.jpg
+└── videos/
+    └── echosync/
+        ├── echosync-demo-english.mp4
+        └── echosync-demo-chinese.mp4
+```
+
+The hero image loads immediately. Gallery and hardware-card images use native lazy loading, while both videos use `preload="metadata"` and never autoplay.
+
+### Replace project media
+
+1. Keep replacement images in `assets/images/echosync/` and videos in `assets/videos/echosync/`.
+2. Use descriptive lowercase filenames and retain web-compatible formats such as JPEG and MP4.
+3. Update the corresponding `image`, `hardware`, `gallery`, or `videos` entry in [`js/projects-data.js`](js/projects-data.js).
+4. Keep meaningful `alt` text and captions in the same central data object.
+5. Preview the homepage and case-study page before committing.
+
+### Optimise videos
+
+If FFmpeg is available, a large demonstration can be converted to a web-friendly H.264/AAC MP4 at approximately 720p:
+
+```bash
+ffmpeg -i input.mp4 -vf "scale=-2:720" -c:v libx264 -crf 26 -preset medium -c:a aac -b:a 96k -movflags +faststart output.mp4
+```
+
+Before replacing the repository copy, verify that the output plays from beginning to end, contains its audio track, preserves the expected duration, and is smaller than the original. Keep only the verified delivery file rather than committing unnecessary duplicates.
 
 ## Run the website locally
 

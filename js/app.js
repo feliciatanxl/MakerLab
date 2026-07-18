@@ -2,6 +2,16 @@
   "use strict";
 
   const data = window.MAKER_LAB_DATA;
+  const isProjectPage = Boolean(document.querySelector("[data-project-detail]"));
+
+  function localPath(path) {
+    return isProjectPage ? `../${path}` : path;
+  }
+
+  function setText(selector, value) {
+    const element = document.querySelector(selector);
+    if (element) element.textContent = value;
+  }
 
   function setCurrentYear() {
     document.querySelectorAll("[data-current-year]").forEach((element) => {
@@ -71,6 +81,7 @@
 
   function projectCard(project) {
     const tags = project.tags.map((tag) => `<span>${tag}</span>`).join("");
+    const statusClass = project.status.startsWith("Built") ? "built" : "planned";
     const action = project.detailUrl
       ? `<a class="button button-secondary project-card-action" href="${project.detailUrl}">View details <span aria-hidden="true">→</span></a>`
       : `<button class="button project-card-action" type="button" disabled aria-label="Details for ${project.name} are planned">Details coming later</button>`;
@@ -79,7 +90,7 @@
       <article class="project-card">
         <div class="project-card-top">
           <span class="project-number">PROJECT / ${String(project.order).padStart(3, "0")}</span>
-          <span class="status-badge status-${project.status.toLowerCase()}">${project.status}</span>
+          <span class="status-badge status-${statusClass}">${project.status}</span>
         </div>
         <h3>${project.name}</h3>
         <p>${project.description}</p>
@@ -95,15 +106,13 @@
 
     const project = data.projects.find((item) => item.id === root.dataset.featuredProject);
     if (!project) return;
-    const tags = project.tags.concat(["HTTP APIs"]).map((tag) => `<span>${tag}</span>`).join("");
+    const tags = project.tags.map((tag) => `<span>${tag}</span>`).join("");
 
     root.innerHTML = `
-      <div class="featured-visual" aria-hidden="true">
-        <div class="signal-ring ring-one"></div><div class="signal-ring ring-two"></div>
-        <div class="echo-core"><span>ES</span><small>SENSOR NODE</small></div>
-        <span class="sensor-label label-sound">SOUND</span><span class="sensor-label label-motion">PIR</span>
-        <span class="sensor-label label-distance">DISTANCE</span><span class="sensor-label label-load">LOAD</span>
-      </div>
+      <figure class="featured-visual featured-photo">
+        <img src="${localPath(project.image)}" alt="${project.imageAlt}" width="720" height="1280" loading="lazy" decoding="async">
+        <figcaption><span>DEVELOPMENT PROTOTYPE</span><strong>${project.platform}</strong></figcaption>
+      </figure>
       <div class="featured-content">
         <div class="project-topline"><span class="status-badge status-built">${project.status}</span><span class="project-code">FEATURED / ${String(project.order).padStart(3, "0")}</span></div>
         <h3 id="featured-project-title">${project.name}</h3>
@@ -112,7 +121,10 @@
         <div class="tag-list" aria-label="${project.name} technologies">${tags}</div>
         <div class="project-actions">
           <a class="button button-primary" href="${project.detailUrl}">View Project Details <span aria-hidden="true">→</span></a>
-          <a class="text-link" href="${project.sourceUrl}" target="_blank" rel="noreferrer">Browse Source <span aria-hidden="true">↗</span></a>
+          <div class="project-secondary-links">
+            <a class="text-link external-project-link" href="${project.repositoryUrl}" target="_blank" rel="noopener noreferrer">Full repository <span aria-hidden="true">↗</span></a>
+            <a class="text-link external-project-link portfolio-project-link" href="${project.portfolioUrl}" target="_blank" rel="noopener noreferrer">Portfolio Case Study <span aria-hidden="true">↗</span></a>
+          </div>
         </div>
       </div>`;
   }
@@ -162,8 +174,184 @@
     }).join("");
   }
 
-  function listMarkup(items) {
-    return items.map((item) => `<li>${item}</li>`).join("");
+  function renderHardware(items) {
+    const root = document.querySelector("[data-hardware-grid]");
+    if (!root) return;
+    root.innerHTML = items.map((item) => `
+      <article class="hardware-card">
+        <div class="hardware-image"${item.crop ? ` data-image-crop="${item.crop}"` : ""}><img src="${localPath(item.image)}" alt="${item.alt}" width="${item.width || 720}" height="${item.height || 1280}" loading="lazy" decoding="async"></div>
+        <div class="hardware-content">
+          <span>${item.interface}</span>
+          <h3>${item.name}</h3>
+          <p>${item.purpose}</p>
+        </div>
+      </article>`).join("");
+  }
+
+  function renderPrototypeEvidence(selector, items) {
+    const root = document.querySelector(selector);
+    if (!root) return;
+    root.innerHTML = items.map((item) => `
+      <figure class="prototype-evidence-card">
+        <div class="prototype-evidence-media"><img src="${localPath(item.image)}" alt="${item.alt}" width="${item.width || 720}" height="${item.height || 1280}" loading="lazy" decoding="async"></div>
+        <figcaption><span>${item.category}</span><strong>${item.caption}</strong></figcaption>
+      </figure>`).join("");
+  }
+
+  function renderArchitecture(items) {
+    const root = document.querySelector("[data-architecture-flow]");
+    if (!root) return;
+    root.innerHTML = items.map((item, index) => `
+      <li class="architecture-node">
+        <span class="architecture-index" aria-hidden="true">${String(index + 1).padStart(2, "0")}</span>
+        <strong>${item.title}</strong>
+        <small>${item.label}</small>
+        ${index < items.length - 1 ? '<span class="architecture-arrow" aria-hidden="true"></span>' : ''}
+      </li>`).join("");
+  }
+
+  function renderDecisionWorkflow(items) {
+    const root = document.querySelector("[data-decision-workflow]");
+    if (!root) return;
+    root.innerHTML = items.map((item, index) => `
+      <li><span>${String(index + 1).padStart(2, "0")}</span><div><h3>${item.title}</h3><p>${item.text}</p></div></li>`).join("");
+  }
+
+  function renderEcosystem(items) {
+    const root = document.querySelector("[data-ecosystem-flow]");
+    if (!root) return;
+    root.innerHTML = items.map((item) => `<li><strong>${item.title}</strong><span>${item.label}</span></li>`).join("");
+  }
+
+  function renderVideos(videos) {
+    const root = document.querySelector("[data-video-grid]");
+    if (!root) return;
+    root.innerHTML = videos.map((video) => `
+      <article class="video-card">
+        <div class="video-frame">
+          <video controls preload="metadata" playsinline aria-label="${video.title}">
+            <source src="${localPath(video.src)}" type="video/mp4">
+            Your browser cannot play this video. <a href="${localPath(video.src)}">Download the ${video.title}</a>.
+          </video>
+        </div>
+        <div class="video-content">
+          <span class="language-label">${video.language}</span>
+          <h3>${video.title}</h3>
+          <p>${video.description}</p>
+        </div>
+      </article>`).join("");
+  }
+
+  function renderGallery(items) {
+    const root = document.querySelector("[data-hardware-gallery]");
+    if (!root) return;
+    root.innerHTML = items.map((item, index) => `
+      <figure class="gallery-item">
+        <button type="button" data-gallery-index="${index}" aria-label="Enlarge image: ${item.caption}">
+          <img src="${localPath(item.image)}" alt="${item.alt}" width="${item.width || 720}" height="${item.height || 1280}" loading="lazy" decoding="async">
+          <span aria-hidden="true">↗</span>
+        </button>
+        <figcaption>${item.caption}</figcaption>
+      </figure>`).join("");
+  }
+
+  function renderResults(items) {
+    const root = document.querySelector("[data-results-grid]");
+    if (!root) return;
+    root.innerHTML = items.map((item, index) => `
+      <article><span>${String(index + 1).padStart(2, "0")}</span><p>${item}</p></article>`).join("");
+  }
+
+  function renderEmbeddedSources(items) {
+    const root = document.querySelector("[data-embedded-source-list]");
+    if (!root) return;
+    root.innerHTML = items.map((item) => `
+      <li><a href="${localPath(item.path)}"><span><strong>${item.name}</strong><small>${item.role}</small></span><span aria-hidden="true">→</span></a></li>`).join("");
+  }
+
+  function renderTextList(selector, items) {
+    const root = document.querySelector(selector);
+    if (root) root.innerHTML = items.map((item) => `<li>${item}</li>`).join("");
+  }
+
+  function initJsonCopy() {
+    const button = document.querySelector("[data-copy-json]");
+    const code = document.querySelector("[data-serial-json]");
+    const feedback = document.querySelector("[data-copy-feedback]");
+    if (!button || !code || !feedback) return;
+    let feedbackTimer;
+
+    const fallbackCopy = (text) => {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.className = "copy-helper";
+      document.body.appendChild(textarea);
+      textarea.select();
+      const copied = document.execCommand("copy");
+      textarea.remove();
+      if (!copied) throw new Error("Copy command was unavailable");
+    };
+
+    button.addEventListener("click", async () => {
+      clearTimeout(feedbackTimer);
+      try {
+        if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(code.textContent);
+        else fallbackCopy(code.textContent);
+        feedback.textContent = "JSON copied to clipboard.";
+        button.textContent = "Copied";
+      } catch (error) {
+        feedback.textContent = "Copy failed. Select the JSON text and copy it manually.";
+        button.textContent = "Copy JSON";
+      }
+      feedbackTimer = window.setTimeout(() => {
+        feedback.textContent = "";
+        button.textContent = "Copy JSON";
+      }, 2600);
+    });
+  }
+
+  function initGalleryDialog(gallery) {
+    const grid = document.querySelector("[data-hardware-gallery]");
+    const dialog = document.querySelector("[data-gallery-dialog]");
+    const image = document.querySelector("[data-dialog-image]");
+    const caption = document.querySelector("[data-dialog-caption]");
+    const closeButton = document.querySelector("[data-dialog-close]");
+    if (!grid || !dialog || !image || !caption || !closeButton) return;
+    let openingButton = null;
+
+    const openFromButton = (button) => {
+      const item = gallery[Number(button.dataset.galleryIndex)];
+      if (!item) return;
+      openingButton = button;
+      image.src = localPath(item.image);
+      image.alt = item.alt;
+      caption.textContent = item.caption;
+      dialog.showModal();
+    };
+
+    grid.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-gallery-index]");
+      if (button) openFromButton(button);
+    });
+
+    grid.addEventListener("keydown", (event) => {
+      const button = event.target.closest("button[data-gallery-index]");
+      if (!button || !["Enter", " ", "Space", "Spacebar"].includes(event.key)) return;
+      event.preventDefault();
+      openFromButton(button);
+    });
+
+    closeButton.addEventListener("click", () => dialog.close());
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) dialog.close();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && dialog.open) dialog.close();
+    });
+    dialog.addEventListener("close", () => {
+      if (openingButton) openingButton.focus();
+    });
   }
 
   function initProjectDetail() {
@@ -174,23 +362,32 @@
     if (!project || !project.detail) return;
     const detail = project.detail;
 
-    document.title = `${project.name} | Maker-Lab`;
+    document.title = `${project.name} Case Study | Maker-Lab`;
     document.querySelectorAll("[data-project-name]").forEach((element) => { element.textContent = project.name; });
-    document.querySelector("[data-project-summary]").textContent = detail.summary;
-    document.querySelector("[data-hardware-list]").innerHTML = listMarkup(detail.hardware);
-    document.querySelector("[data-software-list]").innerHTML = listMarkup(detail.software);
-    document.querySelector("[data-communication]").textContent = detail.communication;
-    document.querySelector("[data-system-flow]").innerHTML = detail.flow.map((node, index) => `
-      ${index ? '<span class="flow-arrow" aria-hidden="true">→</span>' : ""}
-      <div class="flow-node"><strong>${node.title}</strong><span>${node.label}</span></div>`).join("");
-    document.querySelector("[data-capabilities-list]").innerHTML = listMarkup(detail.capabilities);
-    document.querySelector("[data-source-files]").innerHTML = detail.files.map((file) => `
-      <li>
-        <a href="${file.url}" target="_blank" rel="noreferrer">
-          <span><strong>${file.name}</strong><small>${file.role}</small></span>
-          <span aria-hidden="true">↗</span>
-        </a>
-      </li>`).join("");
+    setText("[data-platform-label]", project.platformLabel);
+    setText("[data-project-summary]", detail.summary);
+    setText("[data-prototype-notice]", detail.prototypeNotice);
+    setText("[data-project-overview]", detail.overview);
+    setText("[data-serial-json]", JSON.stringify(detail.serialExample, null, 2));
+    setText("[data-recognition]", detail.recognition);
+    document.querySelectorAll("[data-portfolio-link]").forEach((link) => {
+      link.href = project.portfolioUrl;
+    });
+
+    renderHardware(detail.hardware);
+    renderPrototypeEvidence("[data-prototype-evidence]", detail.prototypeImages.slice(0, 3));
+    renderPrototypeEvidence("[data-workflow-evidence]", detail.prototypeImages.slice(3));
+    renderArchitecture(detail.architecture);
+    renderDecisionWorkflow(detail.detectionWorkflow);
+    renderEcosystem(detail.ecosystem);
+    renderVideos(project.videos);
+    renderGallery(detail.gallery);
+    renderResults(detail.results);
+    renderEmbeddedSources(project.firmwareLinks);
+    renderTextList("[data-lessons-list]", detail.lessons);
+    renderTextList("[data-future-list]", detail.future);
+    initJsonCopy();
+    initGalleryDialog(detail.gallery);
   }
 
   setCurrentYear();
