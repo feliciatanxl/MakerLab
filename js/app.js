@@ -376,6 +376,13 @@
     document.querySelectorAll("[data-repository-link]").forEach((link) => {
       link.href = project.repositoryUrl;
     });
+    const firmwareDownload = root.querySelector("[data-firmware-download]");
+    const arduinoFirmware = project.firmwareLinks.find((file) => file.path.toLowerCase().endsWith(".ino"));
+    if (firmwareDownload && arduinoFirmware) {
+      firmwareDownload.href = localPath(arduinoFirmware.path);
+      firmwareDownload.download = arduinoFirmware.name;
+      firmwareDownload.setAttribute("aria-label", `Download Arduino firmware file ${arduinoFirmware.name}`);
+    }
 
     renderHardware(detail.hardware);
     renderPrototypeEvidence("[data-prototype-evidence]", detail.prototypeImages.slice(0, 3));
