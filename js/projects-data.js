@@ -301,7 +301,7 @@
 
   const buildLog = [
     {
-      title: "Maker-Lab repository created",
+      title: "MakerLab repository created",
       description: "A dedicated home for electronics, embedded systems, IoT, and project documentation.",
       status: "Completed",
       phase: "Foundation"
@@ -313,7 +313,7 @@
       phase: "Project 001"
     },
     {
-      title: "Maker-Lab website created",
+      title: "MakerLab website created",
       description: "A responsive public showcase and documentation entry point was added to the repository.",
       status: "Completed",
       phase: "Website 001"
