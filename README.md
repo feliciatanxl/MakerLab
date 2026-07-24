@@ -1,8 +1,8 @@
-# Maker-Lab
+# MakerLab
 
 A collection of Arduino, ESP32, Raspberry Pi, and embedded systems projects.
 
-Maker-Lab is a long-term personal maker repository for learning through hardware, software, and experimentation. It brings together source code, build notes, and a public-facing website for electronics, IoT, embedded systems, sensors, and hardware-and-software prototypes.
+MakerLab is a long-term personal maker repository for learning through hardware, software, and experimentation. It brings together source code, build notes, and a public-facing website for electronics, IoT, embedded systems, sensors, and hardware-and-software prototypes.
 
 > **Tagline:** Building ideas through hardware, software, and experimentation.
 
@@ -40,13 +40,13 @@ The checked-in Arduino sketch reads a microphone/sound sensor, PIR motion sensor
 The complete EchoSync application ecosystem—including the operator-style dashboard, caregiver and responder views, public website, and API routes—is maintained separately:
 
 - **Full application repository:** [github.com/feliciatanxl/EchoSync](https://github.com/feliciatanxl/EchoSync)
-- **Maker-Lab case study:** [`projects/echosync.html`](projects/echosync.html)
+- **MakerLab case study:** [`projects/echosync.html`](projects/echosync.html)
 
 The case study includes English and Chinese demonstration videos, a hardware gallery, an accessible image lightbox, the Arduino-to-Raspberry Pi serial flow, and a clear distinction between the built prototype and future improvements. EchoSync is an innovation prototype, not a certified medical device or deployed emergency system.
 
 ### EchoSync documentation roles
 
-Maker-Lab contains the technical EchoSync build documentation: the hardware prototype, sensor roles, Arduino-to-Raspberry Pi workflow, serial JSON, architecture, short hardware demonstrations, source code, and engineering lessons.
+MakerLab contains the technical EchoSync build documentation: the hardware prototype, sensor roles, Arduino-to-Raspberry Pi workflow, serial JSON, architecture, short hardware demonstrations, source code, and engineering lessons.
 
 The [EchoSync portfolio case study](https://feliciatanxl.github.io/Portfolio/echosync.html) contains the wider project story, problem and impact, personal contribution summary, competition journey, and application walkthrough. The two pages are intentionally cross-linked so each can stay focused on its own role. A future full application walkthrough should live on the portfolio page, while shorter hardware demonstrations remain in Maker-Lab.
 
