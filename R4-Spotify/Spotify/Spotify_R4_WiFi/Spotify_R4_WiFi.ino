@@ -104,9 +104,18 @@ const int16_t PROGRESS_WIDTH = 224;
 const int16_t PROGRESS_HEIGHT = 5;
 
 const uint16_t SPOTIFY_GREEN = 0x1DAB;
-const uint16_t MUTED_TEXT = 0x7BEF;
-const uint16_t DIM_TEXT = 0x4208;
+const uint16_t APP_BACKGROUND = 0x0021;
+const uint16_t TRACK_CARD = 0x0883;
+const uint16_t LYRICS_CARD = 0x1065;
+const uint16_t CARD_BORDER = 0x294A;
+const uint16_t MUTED_TEXT = 0x9CD3;
+const uint16_t DIM_TEXT = 0x4A69;
 const uint16_t PANEL_GREY = 0x18C3;
+
+const int16_t LYRICS_PANEL_X = 4;
+const int16_t LYRICS_PANEL_Y = 125;
+const int16_t LYRICS_PANEL_WIDTH = 232;
+const int16_t LYRICS_PANEL_HEIGHT = 111;
 
 // The smallest Spotify artwork is normally 64x64 and comfortably below 8 KB.
 // Larger downloads are rejected to protect the UNO R4's 32 KB SRAM.
@@ -172,6 +181,15 @@ LyricLine lyricLines[MAX_LYRIC_LINES];
 size_t lyricLineCount = 0;
 int lastDrawnLyric = -999;
 String lyricStatus = "Waiting for a track";
+
+void drawUtf8FittedCenteredLine(
+  const char* text,
+  int16_t boxX,
+  int16_t baselineY,
+  int16_t boxWidth,
+  uint16_t colour,
+  bool bold = false
+);
 
 // =============================================================================
 // Small utilities
@@ -643,7 +661,7 @@ void drawAlbumPlaceholder() {
 }
 
 void drawPlaybackState() {
-  tft.fillRect(208, 2, 29, 14, ST77XX_BLACK);
+  tft.fillRect(208, 2, 29, 14, APP_BACKGROUND);
   if (!hasCurrentTrack) return;
 
   if (currentTrack.isPlaying) {
@@ -655,15 +673,21 @@ void drawPlaybackState() {
 }
 
 void drawTrackBase() {
-  tft.fillScreen(ST77XX_BLACK);
   lastProgressFilled = -1;
   lastProgressFraction = 255;
   lastProgressSecond = UINT32_MAX;
 
+  tft.fillScreen(APP_BACKGROUND);
+  tft.fillRoundRect(4, 19, 232, 83, 8, TRACK_CARD);
+  tft.drawRoundRect(4, 19, 232, 83, 8, CARD_BORDER);
+
   tft.setTextSize(1);
   tft.setTextColor(SPOTIFY_GREEN);
   tft.setCursor(8, 6);
-  tft.print(F("SPOTIFY  NOW PLAYING"));
+  tft.print(F("SPOTIFY"));
+  tft.setTextColor(MUTED_TEXT);
+  tft.setCursor(58, 6);
+  tft.print(F("NOW PLAYING"));
   drawPlaybackState();
 
   tft.drawRoundRect(
@@ -672,22 +696,21 @@ void drawTrackBase() {
     ART_FRAME_SIZE,
     ART_FRAME_SIZE,
     5,
-    DIM_TEXT
+    CARD_BORDER
   );
   drawAlbumPlaceholder();
 
   char title[96];
   char artist[80];
   char album[80];
-  stringToDisplayText(currentTrack.title, title, sizeof(title));
-  stringToDisplayText(currentTrack.artist, artist, sizeof(artist));
-  stringToDisplayText(currentTrack.album, album, sizeof(album));
+  copyUtf8Text(title, sizeof(title), currentTrack.title.c_str(), currentTrack.title.length());
+  copyUtf8Text(artist, sizeof(artist), currentTrack.artist.c_str(), currentTrack.artist.length());
+  copyUtf8Text(album, sizeof(album), currentTrack.album.c_str(), currentTrack.album.length());
 
-  drawWrappedCentered(title, 96, 25, 136, 2, ST77XX_WHITE, 2);
-  drawWrappedCentered(artist, 96, 65, 136, 1, MUTED_TEXT, 2);
-  drawWrappedCentered(album, 96, 87, 136, 1, DIM_TEXT, 1);
+  drawUtf8FittedCenteredLine(title, 96, 45, 136, ST77XX_WHITE, true);
+  drawUtf8FittedCenteredLine(artist, 96, 69, 136, MUTED_TEXT);
+  drawUtf8FittedCenteredLine(album, 96, 90, 136, DIM_TEXT);
 
-  tft.drawFastHLine(8, 123, 224, DIM_TEXT);
   lastDrawnLyric = -999;
 }
 
@@ -822,12 +845,12 @@ void drawProgress() {
 
   tft.setTextSize(1);
   tft.setTextColor(MUTED_TEXT);
-  tft.fillRect(8, 113, 48, 9, ST77XX_BLACK);
+  tft.fillRect(8, 113, 48, 9, APP_BACKGROUND);
   tft.setCursor(8, 114);
   tft.print(currentText);
 
   int16_t durationX = 232 - (int16_t)strlen(durationText) * 6;
-  tft.fillRect(184, 113, 48, 9, ST77XX_BLACK);
+  tft.fillRect(184, 113, 48, 9, APP_BACKGROUND);
   tft.setCursor(durationX, 114);
   tft.print(durationText);
 }
@@ -876,44 +899,147 @@ bool containsNonAscii(const char* text) {
   return false;
 }
 
-const uint8_t* selectUnicodeFont(const char* text) {
-  bool hasChinese = false;
-  bool hasKorean = false;
-  bool hasThai = false;
+bool isKoreanCodePoint(uint32_t codePoint) {
+  return (codePoint >= 0x1100 && codePoint <= 0x11FF) ||
+         (codePoint >= 0x3130 && codePoint <= 0x318F) ||
+         (codePoint >= 0xAC00 && codePoint <= 0xD7AF);
+}
 
-  const char* cursor = text;
-  while (*cursor != '\0') {
-    uint32_t codePoint = readUtf8CodePoint(cursor);
-    if ((codePoint >= 0x1100 && codePoint <= 0x11FF) ||
-        (codePoint >= 0x3130 && codePoint <= 0x318F) ||
-        (codePoint >= 0xAC00 && codePoint <= 0xD7AF)) {
-      hasKorean = true;
-    } else if ((codePoint >= 0x3400 && codePoint <= 0x9FFF) ||
-               (codePoint >= 0xF900 && codePoint <= 0xFAFF)) {
-      hasChinese = true;
-    } else if (codePoint >= 0x0E00 && codePoint <= 0x0E7F) {
-      hasThai = true;
-    }
-  }
+bool isChineseCodePoint(uint32_t codePoint) {
+  return (codePoint >= 0x3400 && codePoint <= 0x9FFF) ||
+         (codePoint >= 0xF900 && codePoint <= 0xFAFF);
+}
 
-  if (hasKorean) return u8g2_font_unifont_t_korean2;
-  if (hasChinese) return u8g2_font_unifont_t_chinese3;
-  if (hasThai) return u8g2_font_etl16thai_t;
+bool isThaiCodePoint(uint32_t codePoint) {
+  return codePoint >= 0x0E00 && codePoint <= 0x0E7F;
+}
+
+bool fontContainsGlyph(const uint8_t* font, uint16_t codePoint) {
+  unicodeText.setFont(font);
+  return u8g2_IsGlyph(&unicodeText.u8g2, codePoint) != 0;
+}
+
+const uint8_t* fontForCodePoint(uint32_t codePoint) {
+  if (isKoreanCodePoint(codePoint)) return u8g2_font_unifont_t_korean2;
+  if (isThaiCodePoint(codePoint)) return u8g2_font_etl16thai_t;
+  if (isChineseCodePoint(codePoint)) return u8g2_font_unifont_t_chinese3;
   return u8g2_font_unifont_t_latin;
 }
 
-void drawUnicodeCenteredLine(
+const uint8_t* resolveGlyphFont(uint32_t& codePoint) {
+  const uint8_t* font = fontForCodePoint(codePoint);
+  uint16_t glyph = codePoint <= 0xFFFF ? (uint16_t)codePoint : (uint16_t)'?';
+  if (fontContainsGlyph(font, glyph)) return font;
+
+  if (font != u8g2_font_unifont_t_chinese3 &&
+      fontContainsGlyph(u8g2_font_unifont_t_chinese3, glyph)) {
+    return u8g2_font_unifont_t_chinese3;
+  }
+
+  codePoint = '?';
+  unicodeText.setFont(u8g2_font_unifont_t_latin);
+  return u8g2_font_unifont_t_latin;
+}
+
+int16_t unicodeGlyphAdvance(uint32_t codePoint) {
+  const uint8_t* font = resolveGlyphFont(codePoint);
+  unicodeText.setFont(font);
+  int16_t width = u8g2_GetGlyphWidth(&unicodeText.u8g2, (uint16_t)codePoint);
+  return width > 0 ? width : 0;
+}
+
+int16_t measureUtf8WithFallback(const char* text) {
+  int16_t width = 0;
+  const char* cursor = text;
+  while (*cursor != '\0') {
+    uint32_t codePoint = readUtf8CodePoint(cursor);
+    width += unicodeGlyphAdvance(codePoint);
+  }
+  return width;
+}
+
+void removeLastUtf8Character(char* text) {
+  size_t length = strlen(text);
+  if (length == 0) return;
+  length--;
+  while (length > 0 && (((uint8_t)text[length] & 0xC0) == 0x80)) length--;
+  text[length] = '\0';
+}
+
+void fitUtf8ToWidth(
+  const char* source,
+  char* destination,
+  size_t destinationSize,
+  int16_t maxWidth
+) {
+  if (destinationSize == 0) return;
+  destination[0] = '\0';
+
+  size_t out = 0;
+  bool truncated = false;
+  const char* cursor = source;
+  while (*cursor != '\0') {
+    const char* glyphStart = cursor;
+    readUtf8CodePoint(cursor);
+    size_t glyphBytes = (size_t)(cursor - glyphStart);
+    if (out + glyphBytes >= destinationSize) {
+      truncated = true;
+      break;
+    }
+
+    memcpy(destination + out, glyphStart, glyphBytes);
+    out += glyphBytes;
+    destination[out] = '\0';
+    if (measureUtf8WithFallback(destination) > maxWidth) {
+      out -= glyphBytes;
+      destination[out] = '\0';
+      truncated = true;
+      break;
+    }
+  }
+
+  if (!truncated) return;
+
+  const char* ellipsis = "...";
+  int16_t ellipsisWidth = measureUtf8WithFallback(ellipsis);
+  while (destination[0] != '\0' &&
+         measureUtf8WithFallback(destination) + ellipsisWidth > maxWidth) {
+    removeLastUtf8Character(destination);
+  }
+  if (strlen(destination) + 3 < destinationSize) strcat(destination, ellipsis);
+}
+
+void drawUtf8FittedCenteredLine(
   const char* text,
+  int16_t boxX,
   int16_t baselineY,
-  uint16_t colour
+  int16_t boxWidth,
+  uint16_t colour,
+  bool bold
 ) {
   if (text[0] == '\0') return;
-  unicodeText.setFont(selectUnicodeFont(text));
-  unicodeText.setForegroundColor(colour);
-  int16_t width = unicodeText.getUTF8Width(text);
-  int16_t x = width < 232 ? (SCREEN_WIDTH - width) / 2 : 4;
-  unicodeText.setCursor(x, baselineY);
-  unicodeText.print(text);
+
+  char fitted[128];
+  fitUtf8ToWidth(text, fitted, sizeof(fitted), boxWidth - (bold ? 1 : 0));
+  int16_t width = measureUtf8WithFallback(fitted);
+  int16_t offset = (boxWidth - width) / 2;
+  if (offset < 0) offset = 0;
+  int16_t x = boxX + offset;
+
+  const char* cursor = fitted;
+  while (*cursor != '\0') {
+    uint32_t codePoint = readUtf8CodePoint(cursor);
+    const uint8_t* font = resolveGlyphFont(codePoint);
+    unicodeText.setFont(font);
+    unicodeText.setForegroundColor(colour);
+    int16_t advance = u8g2_GetGlyphWidth(
+      &unicodeText.u8g2,
+      (uint16_t)codePoint
+    );
+    unicodeText.drawGlyph(x, baselineY, (uint16_t)codePoint);
+    if (bold) unicodeText.drawGlyph(x + 1, baselineY, (uint16_t)codePoint);
+    if (advance > 0) x += advance;
+  }
 }
 
 void drawLyrics(bool force = false) {
@@ -921,13 +1047,32 @@ void drawLyrics(bool force = false) {
   if (!force && active == lastDrawnLyric) return;
   lastDrawnLyric = active;
 
-  tft.fillRect(0, 124, SCREEN_WIDTH, 116, ST77XX_BLACK);
-  drawCenteredLine("LIVE LYRICS", 8, 129, 224, 1, SPOTIFY_GREEN);
+  tft.fillRoundRect(
+    LYRICS_PANEL_X,
+    LYRICS_PANEL_Y,
+    LYRICS_PANEL_WIDTH,
+    LYRICS_PANEL_HEIGHT,
+    8,
+    LYRICS_CARD
+  );
+  tft.drawRoundRect(
+    LYRICS_PANEL_X,
+    LYRICS_PANEL_Y,
+    LYRICS_PANEL_WIDTH,
+    LYRICS_PANEL_HEIGHT,
+    8,
+    CARD_BORDER
+  );
+  tft.fillRoundRect(10, 131, 3, 12, 1, SPOTIFY_GREEN);
+  tft.setTextSize(1);
+  tft.setTextColor(SPOTIFY_GREEN);
+  tft.setCursor(18, 133);
+  tft.print(F("LIVE LYRICS"));
 
   if (lyricLineCount == 0) {
     char status[128];
     stringToDisplayText(lyricStatus, status, sizeof(status));
-    drawWrappedCentered(status, 18, 166, 204, 1, MUTED_TEXT, 4);
+    drawWrappedCentered(status, 18, 169, 204, 1, MUTED_TEXT, 4);
     return;
   }
 
@@ -936,17 +1081,10 @@ void drawLyrics(bool force = false) {
   const char* next = "";
   if (active + 1 < (int)lyricLineCount) next = lyricLines[active + 1].text;
 
-  if (containsNonAscii(previous) || containsNonAscii(current) ||
-      containsNonAscii(next)) {
-    drawUnicodeCenteredLine(previous, 155, DIM_TEXT);
-    drawUnicodeCenteredLine(current, 184, ST77XX_WHITE);
-    drawUnicodeCenteredLine(next, 213, MUTED_TEXT);
-    return;
-  }
-
-  drawWrappedCentered(previous, 12, 144, 216, 1, DIM_TEXT, 1);
-  drawWrappedCentered(current, 8, 163, 224, 2, ST77XX_WHITE, 2);
-  drawWrappedCentered(next, 12, 207, 216, 1, MUTED_TEXT, 2);
+  drawUtf8FittedCenteredLine(previous, 14, 160, 212, DIM_TEXT);
+  tft.fillRoundRect(9, 171, 3, 23, 1, SPOTIFY_GREEN);
+  drawUtf8FittedCenteredLine(current, 14, 190, 212, ST77XX_WHITE, true);
+  drawUtf8FittedCenteredLine(next, 14, 220, 212, MUTED_TEXT);
 }
 
 // =============================================================================
@@ -990,7 +1128,7 @@ bool renderAlbumJpeg(uint8_t* jpegData, size_t jpegLength) {
     ART_FRAME_Y + 2,
     ART_INNER_SIZE,
     ART_INNER_SIZE,
-    ST77XX_BLACK
+    TRACK_CARD
   );
 
   while (JpegDec.read()) {
@@ -1488,7 +1626,20 @@ bool fetchLyricsForCurrentTrack() {
   return lyricLineCount > 0;
 }
 
+void animateTrackTransition() {
+  // A dark left-to-right curtain replaces the old player before the new card
+  // is drawn. It avoids the bright full-screen clear that looks like a blink.
+  const int16_t stripWidth = 12;
+  for (int16_t x = 0; x < SCREEN_WIDTH; x += stripWidth) {
+    int16_t remaining = SCREEN_WIDTH - x;
+    int16_t width = stripWidth < remaining ? stripWidth : remaining;
+    tft.fillRect(x, 0, width, SCREEN_HEIGHT, APP_BACKGROUND);
+    delay(3);
+  }
+}
+
 void handleNewTrack() {
+  animateTrackTransition();
   lyricLineCount = 0;
   lyricStatus = "Loading track...";
 
