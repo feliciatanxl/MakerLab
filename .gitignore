@@ -427,3 +427,9 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Local Arduino and server credentials
+**/arduino_secrets.h
+.env
+.env.*
+!.env.example
