@@ -63,6 +63,7 @@
 #include <JPEGDecoder.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include "cjk16_font.h"
 #include "../arduino_secrets.h"
 
 // =============================================================================
@@ -1040,22 +1041,63 @@ bool fontContainsGlyph(const uint8_t* font, uint16_t codePoint) {
   return u8g2_IsGlyph(&unicodeText.u8g2, codePoint) != 0;
 }
 
-const uint8_t* fontForCodePoint(uint32_t codePoint) {
-  uint16_t glyph = codePoint <= 0xFFFF ? (uint16_t)codePoint : (uint16_t)'?';
+bool cjk16GlyphOffset(uint32_t codePoint, uint32_t& byteOffset) {
+  for (uint8_t i = 0; i < CJK16_RANGE_COUNT; i++) {
+    uint16_t first = pgm_read_word(&CJK16_RANGE_FIRST[i]);
+    uint16_t last = pgm_read_word(&CJK16_RANGE_LAST[i]);
+    if (codePoint < first || codePoint > last) continue;
 
+    uint32_t rangeOffset = pgm_read_dword(&CJK16_RANGE_OFFSET[i]);
+    byteOffset = (rangeOffset + codePoint - first) * CJK16_BYTES_PER_GLYPH;
+    return true;
+  }
+  return false;
+}
+
+void drawCjk16Glyph(
+  int16_t x,
+  int16_t baselineY,
+  uint32_t byteOffset,
+  uint16_t colour,
+  bool bold
+) {
+  // GNU Unifont's 16-pixel cells extend from 14 pixels above the baseline
+  // to 2 pixels below it, matching the baseline convention used by U8g2.
+  int16_t top = baselineY - 14;
+
+  for (uint8_t row = 0; row < CJK16_GLYPH_HEIGHT; row++) {
+    uint32_t rowOffset = byteOffset + row * 2UL;
+    uint16_t pixels = ((uint16_t)pgm_read_byte(&CJK16_BITMAPS[rowOffset]) << 8) |
+                      pgm_read_byte(&CJK16_BITMAPS[rowOffset + 1]);
+
+    uint8_t column = 0;
+    while (column < CJK16_GLYPH_WIDTH) {
+      while (column < CJK16_GLYPH_WIDTH &&
+             (pixels & (0x8000U >> column)) == 0) {
+        column++;
+      }
+      uint8_t runStart = column;
+      while (column < CJK16_GLYPH_WIDTH &&
+             (pixels & (0x8000U >> column)) != 0) {
+        column++;
+      }
+      if (column > runStart) {
+        uint8_t runWidth = column - runStart;
+        tft.drawFastHLine(x + runStart, top + row, runWidth, colour);
+        if (bold) {
+          tft.drawFastHLine(x + runStart + 1, top + row, runWidth, colour);
+        }
+      }
+    }
+  }
+}
+
+const uint8_t* fontForCodePoint(uint32_t codePoint) {
   if (isKoreanCodePoint(codePoint)) {
     return u8g2_font_unifont_t_korean2;
   }
   if (isThaiCodePoint(codePoint)) {
     return u8g2_font_etl16thai_t;
-  }
-  if (isChineseCodePoint(codePoint)) {
-    // The full GB2312 font covers far more common Simplified Chinese glyphs.
-    // Chinese3 remains as a fallback for common Traditional Chinese glyphs.
-    if (fontContainsGlyph(u8g2_font_wqy12_t_gb2312, glyph)) {
-      return u8g2_font_wqy12_t_gb2312;
-    }
-    return u8g2_font_unifont_t_chinese3;
   }
 
   return u8g2_font_unifont_t_latin;
@@ -1066,17 +1108,15 @@ const uint8_t* resolveGlyphFont(uint32_t& codePoint) {
   uint16_t glyph = codePoint <= 0xFFFF ? (uint16_t)codePoint : (uint16_t)'?';
   if (fontContainsGlyph(font, glyph)) return font;
 
-  if (font != u8g2_font_unifont_t_chinese3 &&
-      fontContainsGlyph(u8g2_font_unifont_t_chinese3, glyph)) {
-    return u8g2_font_unifont_t_chinese3;
-  }
-
   codePoint = '?';
   unicodeText.setFont(u8g2_font_unifont_t_latin);
   return u8g2_font_unifont_t_latin;
 }
 
 int16_t unicodeGlyphAdvance(uint32_t codePoint) {
+  uint32_t byteOffset;
+  if (cjk16GlyphOffset(codePoint, byteOffset)) return CJK16_GLYPH_WIDTH;
+
   const uint8_t* font = resolveGlyphFont(codePoint);
   unicodeText.setFont(font);
   int16_t width = u8g2_GetGlyphWidth(&unicodeText.u8g2, (uint16_t)codePoint);
@@ -1162,6 +1202,13 @@ void drawUtf8FittedCenteredLine(
   const char* cursor = fitted;
   while (*cursor != '\0') {
     uint32_t codePoint = readUtf8CodePoint(cursor);
+    uint32_t cjkByteOffset;
+    if (cjk16GlyphOffset(codePoint, cjkByteOffset)) {
+      drawCjk16Glyph(x, baselineY, cjkByteOffset, colour, bold);
+      x += CJK16_GLYPH_WIDTH;
+      continue;
+    }
+
     const uint8_t* font = resolveGlyphFont(codePoint);
     unicodeText.setFont(font);
     unicodeText.setForegroundColor(colour);
