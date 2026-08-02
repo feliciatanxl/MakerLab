@@ -163,7 +163,7 @@ const uint32_t PROGRESS_UPDATE_MS = 33;  // About 30 frames per second.
 const uint32_t LYRIC_CHECK_MS = 50;
 // Positive values show lyrics slightly earlier to compensate for TFT drawing,
 // Spotify Connect and speaker-output latency. Tune in 50 ms steps if needed.
-const int32_t LYRIC_DISPLAY_ADVANCE_MS = 200;
+const int32_t LYRIC_DISPLAY_ADVANCE_MS = 900;
 const uint32_t MAX_SPOTIFY_RESPONSE_COMPENSATION_MS = 1500;
 const uint32_t MATRIX_UPDATE_MS = 45;  // About 22 animation frames per second.
 const uint32_t MATRIX_TARGET_MS = 90;
@@ -202,6 +202,17 @@ uint8_t matrixRows[MATRIX_DEVICE_COUNT][8] = {};
 uint8_t matrixBarHeight[8] = {};
 uint8_t matrixTargetHeight[8] = {};
 uint32_t nextMatrixTargetAtMs = 0;
+
+// HTTPS can take several seconds on a busy Wi-Fi connection. Run TFT and
+// matrix animation in a dedicated task so network waits never freeze the
+// playhead, lyric highlighting, or equalizer motion.
+SemaphoreHandle_t playbackStateMutex = nullptr;
+SemaphoreHandle_t displayMutex = nullptr;
+TaskHandle_t playbackAnimationTaskHandle = nullptr;
+volatile bool lyricsAreLoading = false;
+volatile bool requestTrackBaseRedraw = false;
+volatile bool requestLyricsRedraw = false;
+volatile bool requestPlaybackStateRedraw = false;
 
 // =============================================================================
 // Lyrics state
@@ -246,6 +257,24 @@ void drawUtf8FittedCenteredLine(
   bool bold = false
 );
 void drawTrackMetadata();
+
+void lockPlaybackState() {
+  if (playbackStateMutex != nullptr) {
+    xSemaphoreTake(playbackStateMutex, portMAX_DELAY);
+  }
+}
+
+void unlockPlaybackState() {
+  if (playbackStateMutex != nullptr) xSemaphoreGive(playbackStateMutex);
+}
+
+void lockDisplay() {
+  if (displayMutex != nullptr) xSemaphoreTake(displayMutex, portMAX_DELAY);
+}
+
+void unlockDisplay() {
+  if (displayMutex != nullptr) xSemaphoreGive(displayMutex);
+}
 
 // =============================================================================
 // Small utilities
@@ -675,6 +704,7 @@ void drawWrappedCentered(
 }
 
 void drawStatusScreen(const char* heading, const char* detail) {
+  lockDisplay();
   tft.fillScreen(ST77XX_BLACK);
   tft.fillCircle(120, 62, 34, SPOTIFY_GREEN);
   tft.fillCircle(109, 57, 3, ST77XX_BLACK);
@@ -684,6 +714,7 @@ void drawStatusScreen(const char* heading, const char* detail) {
 
   drawCenteredLine(heading, 8, 111, 224, 2, ST77XX_WHITE);
   drawWrappedCentered(detail, 20, 145, 200, 1, MUTED_TEXT, 5);
+  unlockDisplay();
 }
 
 void runTftColourTest() {
@@ -867,9 +898,11 @@ void chooseMusicMatrixTargets(uint32_t playhead) {
     seed ^= seed >> 17;
     seed ^= seed << 5;
 
-    uint8_t target = 5 + (seed % 22) + pulse;
+    // Use the full 32-pixel height instead of hovering around half-full. This
+    // gives the obvious DJ-style rise/fall motion visible from across a room.
+    uint8_t target = 2 + (seed % 27) + pulse;
     // Slightly taller centre columns make the animation read as an equalizer.
-    if (column >= 2 && column <= 5) target += 2;
+    if (column >= 2 && column <= 5) target += 1;
     matrixTargetHeight[column] = target > 32 ? 32 : target;
   }
 }
@@ -878,7 +911,8 @@ void updateMusicMatrix() {
   bool reachedTrackEnd = hasCurrentTrack &&
                          currentTrack.durationMs > 0 &&
                          estimatedPlayheadMs() >= currentTrack.durationMs;
-  if (!hasCurrentTrack || !currentTrack.isPlaying || reachedTrackEnd) {
+  if (WiFi.status() != WL_CONNECTED || !hasCurrentTrack ||
+      !currentTrack.isPlaying || reachedTrackEnd) {
     if (matrixIsLit) clearMusicMatrix();
     return;
   }
@@ -902,9 +936,9 @@ void updateMusicMatrix() {
     int16_t difference =
       (int16_t)matrixTargetHeight[column] - matrixBarHeight[column];
     if (difference > 0) {
-      matrixBarHeight[column] += difference > 4 ? 4 : difference;
+      matrixBarHeight[column] += difference > 5 ? 5 : difference;
     } else if (difference < 0) {
-      uint8_t fall = -difference > 3 ? 3 : (uint8_t)(-difference);
+      uint8_t fall = -difference > 4 ? 4 : (uint8_t)(-difference);
       matrixBarHeight[column] -= fall;
     }
 
@@ -1722,95 +1756,50 @@ void drawCurrentLyricHighlight(
   );
 }
 
-void animateSpotifyLyricChange(int oldIndex, int newIndex) {
-  WrappedLyric outgoing;
-  WrappedLyric incoming;
-  wrapCompactLyric(lyricLines[oldIndex].text, 212, outgoing);
-  wrapCompactLyric(lyricLines[newIndex].text, 212, incoming);
-
-  int16_t outgoingFirst;
-  int16_t outgoingSecond;
-  int16_t incomingStartFirst;
-  int16_t incomingStartSecond;
-  int16_t incomingEndFirst;
-  int16_t incomingEndSecond;
-  lyricLayoutBaselines(outgoing, true, outgoingFirst, outgoingSecond);
-  lyricLayoutBaselines(
-    incoming, false, incomingStartFirst, incomingStartSecond
+void drawLyricStatusPanel(const char* statusText) {
+  tft.fillRoundRect(
+    LYRICS_PANEL_X,
+    LYRICS_PANEL_Y,
+    LYRICS_PANEL_WIDTH,
+    LYRICS_PANEL_HEIGHT,
+    8,
+    LYRICS_CARD
   );
-  lyricLayoutBaselines(incoming, true, incomingEndFirst, incomingEndSecond);
-
-  const uint8_t frameCount = 5;
-  for (uint8_t frame = 1; frame <= frameCount; frame++) {
-    uint8_t amount = (uint16_t)frame * 255 / frameCount;
-    int16_t incomingFirst = incomingStartFirst +
-      (int32_t)(incomingEndFirst - incomingStartFirst) * frame / frameCount;
-    int16_t incomingSecond = incomingStartSecond +
-      (int32_t)(incomingEndSecond - incomingStartSecond) * frame / frameCount;
-
-    tft.fillRect(8, 146, 224, 84, LYRICS_CARD);
-    tft.fillRoundRect(9, 149, 3, 35, 1, SPOTIFY_GREEN);
-    drawLyricLayout(
-      outgoing,
-      outgoingFirst,
-      outgoingSecond,
-      blendRgb565(ST77XX_WHITE, LYRICS_CARD, amount),
-      0
-    );
-    drawLyricLayout(
-      incoming,
-      incomingFirst,
-      incomingSecond,
-      blendRgb565(MUTED_TEXT, ST77XX_WHITE, amount),
-      0
-    );
-    delay(30);
-  }
-
-  // The incoming line is already in its final position. Add the next line
-  // without another clear so the end of the transition cannot flash.
-  int nextIndex = newIndex + 1;
-  if (nextIndex < (int)lyricLineCount) {
-    WrappedLyric nextLayout;
-    wrapCompactLyric(lyricLines[nextIndex].text, 212, nextLayout);
-    int16_t firstBaseline;
-    int16_t secondBaseline;
-    lyricLayoutBaselines(nextLayout, false, firstBaseline, secondBaseline);
-    drawLyricLayout(nextLayout, firstBaseline, secondBaseline, MUTED_TEXT, 0);
-  }
+  tft.drawRoundRect(
+    LYRICS_PANEL_X,
+    LYRICS_PANEL_Y,
+    LYRICS_PANEL_WIDTH,
+    LYRICS_PANEL_HEIGHT,
+    8,
+    CARD_BORDER
+  );
+  tft.fillRoundRect(10, 131, 3, 12, 1, SPOTIFY_GREEN);
+  tft.setTextSize(1);
+  tft.setTextColor(SPOTIFY_GREEN);
+  tft.setCursor(18, 133);
+  tft.print(F("LIVE LYRICS"));
+  drawWrappedCentered(statusText, 18, 169, 204, 1, MUTED_TEXT, 4);
 }
 
 void drawLyrics(bool force = false) {
+  // The network task builds lyricLines in the background. Do not expose a
+  // half-parsed array to the animation task.
+  if (lyricsAreLoading) {
+    if (!force && lastDrawnLyric == -997) return;
+    lastDrawnLyric = -997;
+    lastLyricHighlightGlyphs = UINT16_MAX;
+    drawLyricStatusPanel("Loading synchronised lyrics...");
+    return;
+  }
+
   if (lyricLineCount == 0) {
     if (!force && lastDrawnLyric == -1) return;
     lastDrawnLyric = -1;
     lastLyricHighlightGlyphs = UINT16_MAX;
 
-    tft.fillRoundRect(
-      LYRICS_PANEL_X,
-      LYRICS_PANEL_Y,
-      LYRICS_PANEL_WIDTH,
-      LYRICS_PANEL_HEIGHT,
-      8,
-      LYRICS_CARD
-    );
-    tft.drawRoundRect(
-      LYRICS_PANEL_X,
-      LYRICS_PANEL_Y,
-      LYRICS_PANEL_WIDTH,
-      LYRICS_PANEL_HEIGHT,
-      8,
-      CARD_BORDER
-    );
-    tft.fillRoundRect(10, 131, 3, 12, 1, SPOTIFY_GREEN);
-    tft.setTextSize(1);
-    tft.setTextColor(SPOTIFY_GREEN);
-    tft.setCursor(18, 133);
-    tft.print(F("LIVE LYRICS"));
-
     char status[128];
     stringToDisplayText(lyricStatus, status, sizeof(status));
-    drawWrappedCentered(status, 18, 169, 204, 1, MUTED_TEXT, 4);
+    drawLyricStatusPanel(status);
     return;
   }
 
@@ -1848,10 +1837,10 @@ void drawLyrics(bool force = false) {
     tft.setCursor(18, 133);
     tft.print(F("SPOTIFY LYRICS"));
     drawStableLyricStack(displayIndex, false, highlighted);
-  } else if (lineChanged && displayIndex == lastDrawnLyric + 1) {
-    animateSpotifyLyricChange(lastDrawnLyric, displayIndex);
-    drawCurrentLyricHighlight(displayIndex, highlighted);
   } else if (lineChanged) {
+    // A multi-frame transition repeatedly cleared this area over software SPI,
+    // producing a visible white blink and holding the lyric update back. One
+    // complete swap is much faster; the per-character KTV sweep remains smooth.
     drawStableLyricStack(displayIndex, true, highlighted);
   } else {
     // Paint only the newly active characters over the existing white text.
@@ -2015,7 +2004,11 @@ bool fetchAndDrawAlbumArt(const String& initialUrl) {
 
     secureClient.stop();
     bool rendered = false;
-    if (!overflow && length > 4) rendered = renderAlbumJpeg(jpegData, length);
+    if (!overflow && length > 4) {
+      lockDisplay();
+      rendered = renderAlbumJpeg(jpegData, length);
+      unlockDisplay();
+    }
     free(jpegData);
     return rendered;
   }
@@ -2128,15 +2121,22 @@ bool refreshSpotifyAccessToken() {
 }
 
 void clearTrackAndShowIdle(const char* heading, const char* detail) {
-  clearMusicMatrix();
+  lockPlaybackState();
   bool neededRedraw = hasCurrentTrack;
   hasCurrentTrack = false;
   currentTrack = TrackInfo();
   lyricLineCount = 0;
+  lyricsAreLoading = false;
+  requestTrackBaseRedraw = false;
+  requestLyricsRedraw = false;
+  requestPlaybackStateRedraw = false;
   if (neededRedraw || lastDrawnLyric != -998) {
-    drawStatusScreen(heading, detail);
     lastDrawnLyric = -998;
+    unlockPlaybackState();
+    drawStatusScreen(heading, detail);
+    return;
   }
+  unlockPlaybackState();
 }
 
 // =============================================================================
@@ -2347,12 +2347,10 @@ bool fetchLyricsForCurrentTrack() {
   lyricLineCount = 0;
   lrcFileOffsetMs = 0;
   lyricStatus = "Looking for synchronised lyrics...";
-  drawLyrics(true);
 
   if (!hasCurrentTrack) return false;
   if (!openHttps("lrclib.net")) {
     lyricStatus = "Lyrics service is offline";
-    drawLyrics(true);
     return false;
   }
 
@@ -2376,28 +2374,24 @@ bool fetchLyricsForCurrentTrack() {
   if (!readHttpResponseHeaders(secureClient, response)) {
     secureClient.stop();
     lyricStatus = "Lyrics request timed out";
-    drawLyrics(true);
     return false;
   }
 
   if (response.status == 404) {
     secureClient.stop();
     lyricStatus = "No lyrics found for this version";
-    drawLyrics(true);
     return false;
   }
 
   if (response.status == 429) {
     secureClient.stop();
     lyricStatus = "Lyrics rate limit reached; try later";
-    drawLyrics(true);
     return false;
   }
 
   if (response.status != 200) {
     secureClient.stop();
     lyricStatus = "Lyrics service returned an error";
-    drawLyrics(true);
     return false;
   }
 
@@ -2414,13 +2408,11 @@ bool fetchLyricsForCurrentTrack() {
   if (!parsed) {
     Serial.println(F("Lyrics stream ended before synchronized lyrics were read"));
     lyricStatus = "Lyrics response was incomplete";
-    drawLyrics(true);
     return false;
   }
 
   if (instrumental) {
     lyricStatus = "Instrumental track";
-    drawLyrics(true);
     return true;
   }
 
@@ -2429,23 +2421,26 @@ bool fetchLyricsForCurrentTrack() {
     : foundSyncedField
       ? "Only unsynchronised lyrics are available"
       : "Synchronized lyrics field was missing";
-  drawLyrics(true);
   return lyricLineCount > 0;
 }
 
 void handleNewTrack() {
+  lockPlaybackState();
   lyricLineCount = 0;
   lyricStatus = "Loading track...";
+  lyricsAreLoading = true;
+  requestTrackBaseRedraw = true;
+  requestLyricsRedraw = true;
+  unlockPlaybackState();
 
-  // Spotify changes the now-playing content directly. Avoid a full-screen
-  // curtain/slide animation here; it makes consecutive tracks look like a
-  // slideshow and delays the useful content from appearing.
-  drawTrackBase();
-  drawProgress();
-  drawLyrics(true);
-
-  // Parse lyrics before JPEG work so ArduinoJson gets an unfragmented heap.
+  // Network work stays on loopTask while the animation task continues drawing
+  // the locally interpolated playhead and moving the LED matrix.
   fetchLyricsForCurrentTrack();
+
+  lockPlaybackState();
+  lyricsAreLoading = false;
+  requestLyricsRedraw = true;
+  unlockPlaybackState();
 
   if (!fetchAndDrawAlbumArt(currentTrack.artUrl)) {
     Serial.println(F("Album art unavailable; using placeholder"));
@@ -2506,8 +2501,11 @@ bool pollSpotify() {
     return false;
   }
 
+  lockPlaybackState();
   String oldTrackId = currentTrack.id;
   bool previouslyHadTrack = hasCurrentTrack;
+  unlockPlaybackState();
+  bool trackChanged = false;
 
   {
     HttpBodyStream body(secureClient, response.contentLength, response.chunked);
@@ -2552,6 +2550,7 @@ bool pollSpotify() {
       MAX_SPOTIFY_RESPONSE_COMPENSATION_MS
     );
 
+    lockPlaybackState();
     currentTrack.id = document["item"]["id"] | "";
     currentTrack.title = document["item"]["name"] | "Unknown title";
     currentTrack.artist = document["item"]["artists"][0]["name"] | "Unknown artist";
@@ -2578,20 +2577,19 @@ bool pollSpotify() {
         currentTrack.artUrl = url;
       }
     }
+    hasCurrentTrack = true;
+    trackChanged = !previouslyHadTrack || currentTrack.id != oldTrackId;
+    if (!trackChanged) requestPlaybackStateRedraw = true;
+    unlockPlaybackState();
   }
 
   secureClient.stop();
-  hasCurrentTrack = true;
-
-  bool trackChanged = !previouslyHadTrack || currentTrack.id != oldTrackId;
   if (trackChanged) {
     Serial.print(F("Now playing: "));
     Serial.print(currentTrack.title);
     Serial.print(F(" - "));
     Serial.println(currentTrack.artist);
     handleNewTrack();
-  } else {
-    drawPlaybackState();
   }
 
   return true;
@@ -2600,6 +2598,57 @@ bool pollSpotify() {
 // =============================================================================
 // Wi-Fi, setup and main loop
 // =============================================================================
+
+void servicePlaybackAnimation() {
+  lockPlaybackState();
+
+  // The matrix is independent of the TFT and must be serviced even while the
+  // player is idle so pause/disconnect immediately enters hardware shutdown.
+  updateMusicMatrix();
+
+  if (WiFi.status() != WL_CONNECTED || !hasCurrentTrack) {
+    unlockPlaybackState();
+    return;
+  }
+
+  bool redrawBase = requestTrackBaseRedraw;
+  bool redrawLyrics = requestLyricsRedraw;
+  bool redrawPlaybackState = requestPlaybackStateRedraw;
+  requestTrackBaseRedraw = false;
+  requestLyricsRedraw = false;
+  requestPlaybackStateRedraw = false;
+
+  uint32_t now = millis();
+  bool redrawProgress =
+    redrawBase || now - lastProgressUpdateAtMs >= PROGRESS_UPDATE_MS;
+  bool checkLyrics =
+    redrawBase || redrawLyrics || now - lastLyricCheckAtMs >= LYRIC_CHECK_MS;
+
+  lockDisplay();
+  if (redrawBase) {
+    drawTrackBase();
+    redrawPlaybackState = false;
+  }
+  if (redrawPlaybackState) drawPlaybackState();
+  if (redrawProgress) {
+    lastProgressUpdateAtMs = now;
+    drawProgress();
+  }
+  if (checkLyrics) {
+    lastLyricCheckAtMs = now;
+    drawLyrics(redrawBase || redrawLyrics);
+  }
+  unlockDisplay();
+
+  unlockPlaybackState();
+}
+
+void playbackAnimationTask(void*) {
+  while (true) {
+    servicePlaybackAnimation();
+    vTaskDelay(pdMS_TO_TICKS(5));
+  }
+}
 
 bool connectWiFi(uint32_t waitMs) {
   if (WiFi.status() == WL_CONNECTED) return true;
@@ -2651,6 +2700,9 @@ void setup() {
   unicodeText.setFontMode(1);
   unicodeText.setFontDirection(0);
 
+  playbackStateMutex = xSemaphoreCreateMutex();
+  displayMutex = xSemaphoreCreateMutex();
+
   drawStatusScreen("SPOTIFY TFT", "Starting ESP32-S3...");
   Serial.println(F("MakerLab Spotify TFT for ESP32-S3 starting"));
 
@@ -2671,6 +2723,22 @@ void setup() {
     drawStatusScreen("WI-FI OFFLINE", "Will retry automatically");
     nextWiFiAttemptAtMs = millis() + WIFI_RETRY_MS;
   }
+
+  // Arduino's loopTask normally occupies core 1. Pin animation to the other
+  // ESP32-S3 core so blocking HTTPS reads cannot stop visible motion.
+  BaseType_t animationCore = xPortGetCoreID() == 0 ? 1 : 0;
+  if (xTaskCreatePinnedToCore(
+        playbackAnimationTask,
+        "playback-animation",
+        8192,
+        nullptr,
+        2,
+        &playbackAnimationTaskHandle,
+        animationCore
+      ) != pdPASS) {
+    playbackAnimationTaskHandle = nullptr;
+    Serial.println(F("Could not start animation task; using loop fallback"));
+  }
 }
 
 void loop() {
@@ -2680,7 +2748,9 @@ void loop() {
   }
 
   if (WiFi.status() != WL_CONNECTED) {
-    if (matrixIsLit) clearMusicMatrix();
+    if (playbackAnimationTaskHandle == nullptr && matrixIsLit) {
+      clearMusicMatrix();
+    }
 
     if (timeReached(nextWiFiAttemptAtMs)) {
       drawStatusScreen("WI-FI OFFLINE", "Trying to reconnect...");
@@ -2702,19 +2772,7 @@ void loop() {
     pollSpotify();
   }
 
-  updateMusicMatrix();
-
-  if (hasCurrentTrack &&
-      millis() - lastProgressUpdateAtMs >= PROGRESS_UPDATE_MS) {
-    lastProgressUpdateAtMs = millis();
-    drawProgress();
-  }
-
-  if (hasCurrentTrack &&
-      millis() - lastLyricCheckAtMs >= LYRIC_CHECK_MS) {
-    lastLyricCheckAtMs = millis();
-    drawLyrics();
-  }
+  if (playbackAnimationTaskHandle == nullptr) servicePlaybackAnimation();
 
   delay(5);
 }
